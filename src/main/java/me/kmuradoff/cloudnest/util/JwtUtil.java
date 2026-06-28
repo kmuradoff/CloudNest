@@ -21,7 +21,6 @@ public class JwtUtil {
     public String generateAccessToken(User user) {
         return Jwts.builder()
                 .claim("uuid", user.getUuid())
-                .claim("role", user.getRole())
                 .issuer("CloudNest")
                 .issuedAt(Date.from(Instant.now()))
                 .expiration(Date.from(Instant.now().plus(jwtProperties.getAccessExpiration(), ChronoUnit.MINUTES)))

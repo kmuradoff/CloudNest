@@ -1,5 +1,6 @@
 package me.kmuradoff.cloudnest.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import me.kmuradoff.cloudnest.security.JwtFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,7 +43,11 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-
+                .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> httpSecurityExceptionHandlingConfigurer
+                        .authenticationEntryPoint(
+                        (request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                ))
                 .build();
     }
 

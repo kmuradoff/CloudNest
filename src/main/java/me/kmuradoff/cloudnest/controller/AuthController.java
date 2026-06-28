@@ -2,11 +2,11 @@ package me.kmuradoff.cloudnest.controller;
 
 
 import lombok.RequiredArgsConstructor;
+import me.kmuradoff.cloudnest.dto.AuthResponse;
+import me.kmuradoff.cloudnest.dto.LoginRequest;
+import me.kmuradoff.cloudnest.dto.RegisterRequest;
 import me.kmuradoff.cloudnest.service.AuthService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
@@ -15,13 +15,13 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    public String login() {
-        return "login";
+    public AuthResponse login(@RequestBody LoginRequest loginRequest) {
+        return authService.login(loginRequest);
     }
 
     @PostMapping("/register")
-    public String register() {
-        return "register";
+    public AuthResponse register(@RequestBody RegisterRequest registerRequest) {
+        return authService.register(registerRequest);
     }
 
     @GetMapping("/testing")
