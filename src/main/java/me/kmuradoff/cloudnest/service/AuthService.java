@@ -30,6 +30,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final UserMapper userMapper;
 
+    @Transactional
     public AuthResponse login(LoginRequest loginRequest, String deviceId) {
         User user = userRepository.findByUsername(loginRequest.getUsername());
         if (user == null)
@@ -44,6 +45,7 @@ public class AuthService {
         return issueNewTokens(deviceId, user);
     }
 
+    @Transactional
     public AuthResponse register(RegisterRequest registerRequest, String deviceId) {
         User user = userRepository.findByUsername(registerRequest.getUsername());
         if (user != null)
@@ -72,6 +74,7 @@ public class AuthService {
         return issueNewTokens(deviceId, user);
     }
 
+    @Transactional
     public void logout(UUID userUuid, boolean allDevices, String deviceId) {
         if (!allDevices) {
             refreshTokenRepository.deleteAllByDeviceIdAndUser_Uuid(deviceId, userUuid);

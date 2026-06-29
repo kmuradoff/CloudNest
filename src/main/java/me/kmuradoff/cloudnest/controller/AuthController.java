@@ -6,9 +6,10 @@ import me.kmuradoff.cloudnest.dto.AuthResponse;
 import me.kmuradoff.cloudnest.dto.LoginRequest;
 import me.kmuradoff.cloudnest.dto.RegisterRequest;
 import me.kmuradoff.cloudnest.service.AuthService;
-import me.kmuradoff.cloudnest.service.UserDetailsImpl;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/auth")
@@ -35,8 +36,13 @@ public class AuthController {
     public void logout(Authentication authentication,
                              @RequestParam(defaultValue = "false") boolean allDevices,
                              @RequestHeader("X-Device-Id") String deviceId) {
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        String userId = authentication.getPrincipal().toString();
 
-        authService.logout(userDetails.getUuid(), allDevices, deviceId);
+        authService.logout(UUID.fromString(userId), allDevices, deviceId);
+    }
+
+    @GetMapping("/testing")
+    public String testing() {
+        return "Testing OK!";
     }
 }
