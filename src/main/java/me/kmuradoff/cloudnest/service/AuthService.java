@@ -1,15 +1,16 @@
 package me.kmuradoff.cloudnest.service;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import me.kmuradoff.cloudnest.dto.AuthResponse;
 import me.kmuradoff.cloudnest.dto.LoginRequest;
 import me.kmuradoff.cloudnest.dto.RegisterRequest;
 import me.kmuradoff.cloudnest.exception.InvalidTokenException;
-import me.kmuradoff.cloudnest.exception.TokenExpiredException;
 import me.kmuradoff.cloudnest.exception.UsernameAlreadyExistsException;
+import me.kmuradoff.cloudnest.jpa.model.RefreshToken;
 import me.kmuradoff.cloudnest.jpa.model.User;
+import me.kmuradoff.cloudnest.jpa.repository.RefreshTokenRepository;
 import me.kmuradoff.cloudnest.jpa.repository.UserRepository;
 import me.kmuradoff.cloudnest.mapper.UserMapper;
 import me.kmuradoff.cloudnest.util.JwtUtil;
@@ -24,11 +25,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final UserMapper userMapper;
 
-    public AuthResponse login(LoginRequest loginRequest) {
+    public AuthResponse login(LoginRequest loginRequest, String deviceId) {
         User user = userRepository.findByUsername(loginRequest.getUsername());
         if (user == null)
             throw new UsernameNotFoundException("User not found");
@@ -39,12 +41,10 @@ public class AuthService {
             throw new BadCredentialsException("Invalid credentials");
         }
 
-        return new AuthResponse(jwtUtil.generateAccessToken(user),
-                                jwtUtil.generateRefreshToken(user)
-        );
+        return issueNewTokens(deviceId, user);
     }
 
-    public AuthResponse register(RegisterRequest registerRequest) {
+    public AuthResponse register(RegisterRequest registerRequest, String deviceId) {
         User user = userRepository.findByUsername(registerRequest.getUsername());
         if (user != null)
             throw new UsernameAlreadyExistsException("Username already exists");
@@ -54,21 +54,14 @@ public class AuthService {
 
         User savedUser = userRepository.save(newUser);
 
-        return new AuthResponse(jwtUtil.generateAccessToken(savedUser),
-                                jwtUtil.generateRefreshToken(savedUser)
-        );
+        return issueNewTokens(deviceId, savedUser);
     }
 
-    public AuthResponse refreshToken(String refreshToken) {
-        Claims claims;
+    @Transactional
+    public AuthResponse refreshTokens(String refreshToken, String deviceId) {
+        Claims claims = jwtUtil.validateJwt(refreshToken).getPayload();
 
-        try {
-            claims = jwtUtil.validateJwt(refreshToken).getPayload();
-        } catch (ExpiredJwtException e) {
-            throw new TokenExpiredException("Refresh token expired");
-        }
-
-        if (!claims.get("typ", String.class).equals("refresh")) {
+        if (!"refresh".equals(claims.get("typ", String.class))) {
             throw new InvalidTokenException("Invalid refresh token");
         }
 
@@ -76,9 +69,33 @@ public class AuthService {
         User user = userRepository.findById(userUuid)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
+        return issueNewTokens(deviceId, user);
+    }
+
+    public void logout(UUID userUuid, boolean allDevices, String deviceId) {
+        if (!allDevices) {
+            refreshTokenRepository.deleteAllByDeviceIdAndUser_Uuid(deviceId, userUuid);
+            return;
+        }
+
+        refreshTokenRepository.deleteAllByUser_Uuid(userUuid);
+    }
+
+    private AuthResponse issueNewTokens(String deviceId, User user) {
+        refreshTokenRepository.deleteAllByDeviceIdAndUser_Uuid(deviceId, user.getUuid());
+
+        String newRefreshToken = jwtUtil.generateRefreshToken(user);
+
+        refreshTokenRepository.save(RefreshToken.builder()
+                .token(newRefreshToken)
+                .expiresAt(jwtUtil.getExpiration(newRefreshToken))
+                .deviceId(deviceId)
+                .user(user)
+                .build());
+
         return new AuthResponse(
                 jwtUtil.generateAccessToken(user),
-                jwtUtil.generateRefreshToken(user)
+                newRefreshToken
         );
     }
 }

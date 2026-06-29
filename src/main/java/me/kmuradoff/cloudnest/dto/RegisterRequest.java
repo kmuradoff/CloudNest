@@ -8,10 +8,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RegisterRequest {
     @NonNull
-    String username;
+    private String username;
     @NonNull
-    String password;
+    private String password;
     @NonNull
-    String fullName;
+    private String fullName;
 
 }

@@ -1,6 +1,8 @@
 package me.kmuradoff.cloudnest.util;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -45,5 +47,10 @@ public class JwtUtil {
                 .verifyWith(Keys.hmacShaKeyFor(jwtProperties.getSecret().getBytes()))
                 .build()
                 .parseSignedClaims(token);
+    }
+
+    public Instant getExpiration(String token) {
+        Claims claims = validateJwt(token).getPayload();
+        return claims.getExpiration().toInstant();
     }
 }
