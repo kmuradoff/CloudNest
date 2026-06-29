@@ -1,9 +1,13 @@
 package me.kmuradoff.cloudnest.service;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import lombok.RequiredArgsConstructor;
 import me.kmuradoff.cloudnest.dto.AuthResponse;
 import me.kmuradoff.cloudnest.dto.LoginRequest;
 import me.kmuradoff.cloudnest.dto.RegisterRequest;
+import me.kmuradoff.cloudnest.exception.InvalidTokenException;
+import me.kmuradoff.cloudnest.exception.TokenExpiredException;
 import me.kmuradoff.cloudnest.exception.UsernameAlreadyExistsException;
 import me.kmuradoff.cloudnest.jpa.model.User;
 import me.kmuradoff.cloudnest.jpa.repository.UserRepository;
@@ -13,6 +17,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +56,29 @@ public class AuthService {
 
         return new AuthResponse(jwtUtil.generateAccessToken(savedUser),
                                 jwtUtil.generateRefreshToken(savedUser)
+        );
+    }
+
+    public AuthResponse refreshToken(String refreshToken) {
+        Claims claims;
+
+        try {
+            claims = jwtUtil.validateJwt(refreshToken).getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new TokenExpiredException("Refresh token expired");
+        }
+
+        if (!claims.get("typ", String.class).equals("refresh")) {
+            throw new InvalidTokenException("Invalid refresh token");
+        }
+
+        UUID userUuid = UUID.fromString(claims.get("uuid", String.class));
+        User user = userRepository.findById(userUuid)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        return new AuthResponse(
+                jwtUtil.generateAccessToken(user),
+                jwtUtil.generateRefreshToken(user)
         );
     }
 }

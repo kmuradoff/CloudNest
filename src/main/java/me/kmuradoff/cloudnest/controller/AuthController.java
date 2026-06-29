@@ -24,8 +24,8 @@ public class AuthController {
         return authService.register(registerRequest);
     }
 
-    @GetMapping("/testing")
-    public String testing() {
-        return "Authenticated";
+    @PostMapping("/refresh")
+    public AuthResponse refreshToken(String refreshToken) {
+        return authService.refreshToken(refreshToken);
     }
 }

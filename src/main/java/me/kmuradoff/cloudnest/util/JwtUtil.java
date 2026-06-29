@@ -21,6 +21,7 @@ public class JwtUtil {
     public String generateAccessToken(User user) {
         return Jwts.builder()
                 .claim("uuid", user.getUuid())
+                .claim("typ", "access")
                 .issuer("CloudNest")
                 .issuedAt(Date.from(Instant.now()))
                 .expiration(Date.from(Instant.now().plus(jwtProperties.getAccessExpiration(), ChronoUnit.MINUTES)))
@@ -31,6 +32,7 @@ public class JwtUtil {
     public String generateRefreshToken(User user) {
         return Jwts.builder()
                 .claim("uuid", user.getUuid())
+                .claim("typ", "refresh")
                 .issuer("CloudNest")
                 .issuedAt(Date.from(Instant.now()))
                 .expiration(Date.from(Instant.now().plus(jwtProperties.getRefreshExpiration(), ChronoUnit.DAYS)))
